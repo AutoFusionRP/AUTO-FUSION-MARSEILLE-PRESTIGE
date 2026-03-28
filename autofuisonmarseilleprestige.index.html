@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Auto Fusion Marseille Prestige RP</title>
+<style>
+body{
+margin:0;
+font-family:Arial, Helvetica, sans-serif;
+background:#0f0f10;
+color:white;
+}
+
+header{
+padding:40px 20px;
+text-align:center;
+background:linear-gradient(180deg,#0f0f10,#1a1a1c);
+box-shadow:0 5px 25px rgba(0,0,0,0.8);
+border-bottom:1px solid rgba(255,215,0,0.25);
+}
+
+header img{
+width:320px;
+max-width:90%;
+margin-bottom:10px;
+}
+
+header h1{
+margin:10px 0 0 0;
+font-size:28px;
+letter-spacing:2px;
+background:linear-gradient(90deg,#ffd700,#fff,#ffd700);
+-webkit-background-clip:text;
+color:transparent;
+}
+
+header p{
+color:#c9b37a;
+margin-top:5px;
+}
+
+h1{
+margin:0;
+}
+
+.controls{
+display:flex;
+justify-content:center;
+gap:10px;
+padding:20px;
+flex-wrap:wrap;
+background:linear-gradient(90deg,#7a5a21,#b89646,#7a5a21);
+border-top:1px solid rgba(212,175,55,0.5);
+border-bottom:1px solid rgba(212,175,55,0.5);
+}
+
+
+
+input, select{
+padding:10px;
+border-radius:8px;
+border:none;
+}
+
+.catalogue{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+gap:20px;
+padding:30px;
+max-width:1200px;
+margin:auto;
+}
+
+.car{
+background:linear-gradient(145deg,#1b1b1d,#111112);
+border-radius:15px;
+overflow:hidden;
+box-shadow:0 10px 35px rgba(0,0,0,0.7);
+border:1px solid rgba(255,215,0,0.15);
+transition:transform .25s, box-shadow .25s;
+
+background:#1b1b1d;
+border-radius:15px;
+overflow:hidden;
+box-shadow:0 5px 15px rgba(0,0,0,0.5);
+transition:transform .2s;
+}
+
+.car:hover{
+transform:scale(1.05);
+box-shadow:0 15px 45px rgba(0,0,0,0.9);
+
+transform:scale(1.04);
+}
+
+.car img{
+width:100%;
+height:160px;
+object-fit:cover;
+}
+
+.car-content{
+padding:15px;
+}
+
+.price{
+color:#00ffa6;
+font-weight:bold;
+}
+
+button{
+margin-top:10px;
+padding:10px;
+width:100%;
+border:none;
+border-radius:10px;
+background:linear-gradient(90deg,#8c6a2b,#c6a75a,#8c6a2b);
+color:#111;
+cursor:pointer;
+font-weight:bold;
+letter-spacing:0.5px;
+}
+
+button:hover{
+background:linear-gradient(90deg,#b89646,#e5c97a,#b89646);
+}
+
+footer{
+text-align:center;
+padding:20px;
+background:linear-gradient(90deg,#7a5a21,#b89646,#7a5a21);
+color:#111;
+font-weight:bold;
+letter-spacing:1px;
+}
+
+
+
+</style>
+</head>
+<body>
+
+<header style="position:relative">
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAyAAAAGQCAYAAABWJQQ0AA...TRUNC" alt="Auto Fusion Marseille Prestige logo">
+<h1>AUTO FUSION MARSEILLE PRESTIGE</h1>
+<p>Concessionnaire Automobile RP</p>
+<button id="adminBtn" onclick="loginAdmin()" style="position:absolute;top:20px;right:20px;padding:10px 16px;border:none;border-radius:8px;background:#111;color:#fff;cursor:pointer">Admin</button>
+</header>
+
+<div class="controls">
+<input type="text" id="search" placeholder="Rechercher une voiture..." />
+</div>
+
+<!-- Formulaire simple pour ajouter une voiture -->
+<div id="adminPanel" style="display:none;position:fixed;top:80px;right:20px;width:320px;background:#151515;padding:20px;border-radius:12px;border:1px solid rgba(255,215,0,0.2);z-index:1000">
+<h3 style="margin-top:0">Panneau Admin</h3>
+<button onclick="logoutAdmin()" style="margin-bottom:10px;width:100%;padding:8px;border:none;border-radius:6px;background:#333;color:#fff;cursor:pointer">Quitter mode admin</button>
+<h4>Ajouter une voiture</h4></h2>
+<input id="newName" placeholder="Nom de la voiture" style="padding:10px;margin:5px;width:22%">
+<input id="newPrice" placeholder="Prix" style="padding:10px;margin:5px;width:22%">
+<input id="newSpeed" placeholder="Vitesse" style="padding:10px;margin:5px;width:22%">
+<input id="newImage" placeholder="Lien image" style="padding:10px;margin:5px;width:22%">
+<button onclick="addCar()">Ajouter au catalogue</button>
+</div>
+
+<div class="catalogue" id="catalogue"></div>
+<div id="pagination" style="text-align:center;margin-bottom:40px"></div>
+
+<footer>
+Serveur Discord RP • Concessionnaire
+</footer>
+
+<script>
+
+const ADMIN_PASSWORD = "Seatibizafr3414!"
+let adminMode = false
+
+function loginAdmin(){
+const pass = prompt("Mot de passe admin")
+if(pass === ADMIN_PASSWORD){
+ adminMode = true
+ document.getElementById("adminPanel").style.display = "block"
+ document.getElementById("adminBtn").innerText = "Admin ✓"
+ displayCars()
+}else{
+ alert("Mot de passe incorrect")
+}
+}
+
+function logoutAdmin(){
+adminMode = false
+const panel=document.getElementById("adminPanel")
+if(panel) panel.style.display="none"
+document.getElementById("adminBtn").innerText="Admin"
+displayCars()
+}
+
+// ===== DATA =====
+let saved = localStorage.getItem("cars")
+let cars = saved ? JSON.parse(saved) : []
+
+if(cars.length === 0){
+for (let i = 1; i <= 120; i++) {
+ cars.push({
+  name:`Voiture ${i}`,
+  brand:"Autre",
+  price:`${50000 + i * 1000}€`,
+  speed:`${200 + i} km/h`,
+  description:"Super véhicule pour votre aventure RP.",
+  image:"https://images.unsplash.com/photo-1503376780353-7e6692767b70"
+ })
+}
+}
+
+const catalogue = document.getElementById("catalogue")
+const pagination = document.getElementById("pagination")
+const search = document.getElementById("search")
+
+let currentPage = 1
+const carsPerPage = 24
+
+function saveCars(){
+localStorage.setItem("cars", JSON.stringify(cars))
+}
+
+// ===== DISPLAY =====
+function displayCars(){
+
+catalogue.innerHTML=""
+pagination.innerHTML=""
+
+const searchValue = search.value.toLowerCase()
+
+const filtered = cars.filter(car=>car.name.toLowerCase().includes(searchValue))
+
+const start = (currentPage-1) * carsPerPage
+const end = start + carsPerPage
+
+const pageCars = filtered.slice(start,end)
+
+pageCars.forEach(car=>{
+
+const index = cars.indexOf(car)
+
+const card = document.createElement("div")
+card.className="car"
+
+let adminBtns=""
+if(adminMode){
+adminBtns=`
+<button onclick="editCar(${index})">Modifier</button>
+<button onclick="deleteCar(${index})">Supprimer</button>
+`
+}
+
+card.innerHTML=`
+<img src="${car.image}" onclick="openCarPage(${index})" style="cursor:pointer">
+<div class="car-content">
+<h3>${car.name}</h3>
+<p>${car.brand}</p>
+<p>⚡ ${car.speed}</p>
+<p class="price">💰 ${car.price}</p>
+<button onclick="openCarPage(${index})">Voir fiche</button>
+<button onclick="buy()">Acheter</button>
+${adminBtns}
+</div>
+`
+
+catalogue.appendChild(card)
+
+})
+
+createPagination(filtered.length)
+
+}
+
+// ===== PAGINATION =====
+function createPagination(total){
+
+const pages = Math.ceil(total / carsPerPage)
+
+const prev = document.createElement("button")
+prev.innerText="←"
+prev.disabled=currentPage===1
+prev.onclick=()=>{currentPage--;displayCars()}
+
+const info=document.createElement("span")
+info.innerText=` Page ${currentPage} / ${pages} `
+
+const next=document.createElement("button")
+next.innerText="→"
+next.disabled=currentPage===pages
+next.onclick=()=>{currentPage++;displayCars()}
+
+pagination.appendChild(prev)
+pagination.appendChild(info)
+pagination.appendChild(next)
+}
+
+// ===== ADMIN ADD WITH IMAGE UPLOAD =====
+function addCar(){
+if(!adminMode) return alert("Accès admin requis")
+
+const name=document.getElementById('newName').value
+const brand=document.getElementById('newBrand')?.value || "Autre"
+const price=document.getElementById('newPrice').value
+const speed=document.getElementById('newSpeed').value
+const desc=document.getElementById('newDesc')?.value || ""
+
+const fileInput=document.getElementById('newImageFile')
+
+if(!name) return alert("Nom requis")
+
+if(fileInput && fileInput.files[0]){
+
+const reader = new FileReader()
+
+reader.onload=function(e){
+
+cars.push({
+name:name,
+brand:brand,
+price:price,
+speed:speed,
+description:desc,
+image:e.target.result
+})
+
+saveCars()
+displayCars()
+
+}
+
+reader.readAsDataURL(fileInput.files[0])
+
+}else{
+
+cars.push({
+name:name,
+brand:brand,
+price:price,
+speed:speed,
+description:desc,
+image:"https://images.unsplash.com/photo-1503376780353-7e6692767b70"
+})
+
+saveCars()
+displayCars()
+
+}
+
+}
+
+function deleteCar(index){
+if(!adminMode) return
+
+if(confirm("Supprimer cette voiture ?")){
+cars.splice(index,1)
+saveCars()
+displayCars()
+}
+}
+
+function editCar(index){
+if(!adminMode) return
+
+const car=cars[index]
+
+const name=prompt("Nom",car.name)
+if(!name) return
+
+const brand=prompt("Marque",car.brand)
+const price=prompt("Prix",car.price)
+const speed=prompt("Vitesse",car.speed)
+const desc=prompt("Description",car.description)
+
+cars[index]={...car,name,brand,price,speed,description:desc}
+
+saveCars()
+displayCars()
+}
+
+// ===== CAR DETAIL PAGE =====
+function openCarPage(index){
+
+const car=cars[index]
+
+const modal=document.getElementById("carModal")
+
+modal.style.display="flex"
+
+modal.innerHTML=`
+<div style="background:#111;padding:30px;border-radius:10px;max-width:600px;width:90%">
+<img src="${car.image}" style="width:100%;height:250px;object-fit:cover;border-radius:8px">
+<h2>${car.name}</h2>
+<p><strong>Marque :</strong> ${car.brand}</p>
+<p><strong>Vitesse :</strong> ${car.speed}</p>
+<p><strong>Prix :</strong> ${car.price}</p>
+<p style="opacity:0.8">${car.description}</p>
+<button onclick="buy()">Acheter</button>
+<button onclick="closeModal()">Fermer</button>
+</div>
+`
+
+}
+
+function closeModal(){
+document.getElementById("carModal").style.display="none"
+}
+
+function buy(){
+window.open("https://discord.gg/jskQQT2D","_blank")
+}
+
+search.addEventListener("input",()=>{
+currentPage=1
+displayCars()
+})
+
+// ===== START =====
+
+displayCars()
+
+</script>
+
+<!-- Fenêtre détail voiture -->
+<div id="carModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);justify-content:center;align-items:center;z-index:999">
+<div style="background:#111;padding:30px;border-radius:10px;max-width:500px;text-align:center">
+<img id="modalImg" style="width:100%;height:220px;object-fit:cover;border-radius:8px">
+<h2 id="modalName"></h2>
+<p id="modalSpeed"></p>
+<p id="modalPrice" style="color:#00ffa6;font-weight:bold"></p>
+<button onclick="buy()">Acheter</button>
+<button onclick="closeModal()">Fermer</button>
+</div>
+</div>
+
+<script>
+
+const ADMIN_PASSWORD = "Seatibizafr3414!"
+let adminMode = false
+
+function loginAdmin(){
+const pass = prompt("Mot de passe admin")
+if(pass === ADMIN_PASSWORD){
+adminMode = true
+alert("Mode admin activé")
+const panel = document.getElementById("adminPanel")
+if(panel) panel.style.display = "block"
+displayCars()
+}else{
+alert("Mot de passe incorrect")
+}
+}
+
+let saved = localStorage.getItem("cars")
+let cars = saved ? JSON.parse(saved) : []
+
+if(cars.length === 0){
+for (let i = 1; i <= 120; i++) {
+cars.push({
+name:`Voiture ${i}`,
+brand:"Autre",
+price:`${50000 + i * 1000}€`,
+speed:`${200 + i} km/h`,
+image:"https://images.unsplash.com/photo-1503376780353-7e6692767b70"
+})
+}
+}
+
+const catalogue = document.getElementById("catalogue")
+const pagination = document.getElementById("pagination")
+const search = document.getElementById("search")
+
+let currentPage = 1
+const carsPerPage = 24
+
+function saveCars(){
+localStorage.setItem("cars", JSON.stringify(cars))
+}
+
+function displayCars(){
+
+catalogue.innerHTML=""
+pagination.innerHTML=""
+
+const searchValue = search.value.toLowerCase()
+
+const filtered = cars.filter(car=>car.name.toLowerCase().includes(searchValue))
+
+const start = (currentPage-1) * carsPerPage
+const end = start + carsPerPage
+const pageCars = filtered.slice(start,end)
+
+pageCars.forEach(car=>{
+
+const index = cars.indexOf(car)
+
+const card = document.createElement("div")
+card.className="car"
+
+let adminBtns=""
+if(adminMode){
+adminBtns=`
+<button onclick="editCar(${index})">Modifier</button>
+<button onclick="deleteCar(${index})">Supprimer</button>
+`
+}
+
+card.innerHTML=`
+<img src="${car.image}" onclick="openModal(${index})" style="cursor:pointer">
+<div class="car-content">
+<h3>${car.name}</h3>
+<p>${car.brand}</p>
+<p>⚡ ${car.speed}</p>
+<p class="price">💰 ${car.price}</p>
+<button onclick="buy()">Acheter</button>
+${adminBtns}
+</div>
+`
+
+catalogue.appendChild(card)
+
+})
+
+createPagination(filtered.length)
+}
+
+function createPagination(total){
+
+const pages = Math.ceil(total / carsPerPage)
+
+const prev = document.createElement("button")
+prev.innerText="←"
+prev.disabled=currentPage===1
+prev.onclick=()=>{currentPage--;displayCars()}
+
+const info=document.createElement("span")
+info.innerText=` Page ${currentPage} / ${pages} `
+
+const next=document.createElement("button")
+next.innerText="→"
+next.disabled=currentPage===pages
+next.onclick=()=>{currentPage++;displayCars()}
+
+pagination.appendChild(prev)
+pagination.appendChild(info)
+pagination.appendChild(next)
+}
+
+function addCar(){
+if(!adminMode) return
+
+const name=document.getElementById('newName').value
+const brand=document.getElementById('newBrand')?.value || "Autre"
+const price=document.getElementById('newPrice').value
+const speed=document.getElementById('newSpeed').value
+const image=document.getElementById('newImage').value
+
+if(!name) return alert("Nom requis")
+
+cars.push({name,brand,price,speed,image})
+
+saveCars()
+displayCars()
+}
+
+function deleteCar(index){
+if(!adminMode) return
+if(confirm("Supprimer cette voiture ?")){
+cars.splice(index,1)
+saveCars()
+displayCars()
+}
+}
+
+function editCar(index){
+if(!adminMode) return
+
+const car=cars[index]
+
+const name=prompt("Nom",car.name)
+if(!name) return
+
+const brand=prompt("Marque",car.brand)
+const price=prompt("Prix",car.price)
+const speed=prompt("Vitesse",car.speed)
+const image=prompt("Image",car.image)
+
+cars[index]={name,brand,price,speed,image}
+
+saveCars()
+displayCars()
+}
+
+function openModal(index){
+const car=cars[index]
+
+const modal=document.getElementById("carModal")
+
+modal.style.display="flex"
+
+document.getElementById("modalImg").src=car.image
+
+document.getElementById("modalName").innerText=car.name
+
+document.getElementById("modalSpeed").innerText="Vitesse : "+car.speed
+
+document.getElementById("modalPrice").innerText="Prix : "+car.price
+}
+
+function closeModal(){
+document.getElementById("carModal").style.display="none"
+}
+
+function buy(){
+window.open("https://discord.gg/jskQQT2D","_blank")
+}
+
+search.addEventListener("input",()=>{
+currentPage=1
+displayCars()
+})
+
+displayCars()
+
+</script>
+
+</body>
+</html>
